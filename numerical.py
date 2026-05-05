@@ -22,7 +22,7 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
         t_i = t_arr[i]
         y_i = y_arr[i]
 
-        y_i1 = y_arr[i-1]
+        y_i1 = y_arr[i-1] if i != 0 else y_i
         terminated, msg, endType = terminalCondition(y_i, y_i1, h=h)
         if terminated:
             #print(" lambda=%5d| "%(i)+msg)

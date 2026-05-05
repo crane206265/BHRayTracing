@@ -41,7 +41,7 @@ class Schwarzchild():
         dPphi = -(2/r)*Pphi*Pr - (2*np.cos(theta)/(np.sin(theta)+eps))*Ptheta*Pphi
         return np.array([dt, dr, dtheta, dphi, dPt, dPr, dPtheta, dPphi])
 
-    def terminalCondition(self, y, y1, h, **kwargs):
+    def terminalCondition(self, y, y1, h, mode=None, **kwargs):
         """
         #### Terminal Conditions for Schwarzchild BH
         - returns boolean
@@ -52,7 +52,6 @@ class Schwarzchild():
         """
         M = self.M
         r_max = kwargs['r_max']
-        mode = kwargs['mode']
 
         # NaN Detection
         if np.isnan(y).any():
@@ -76,10 +75,24 @@ class Schwarzchild():
             endType = "Escape"
             msg = "Particle escaped the BH"
             return True, msg, endType
+        
+        # thin disk
+        if mode == "thin_disk":
+            r_in = kwargs['r_in']
+            r_out = kwargs['r_out']
+            crossing = ((y[2]-np.pi/2) * (y1[2]-np.pi/2) < 0)
 
+            w = np.abs(y1[2] - np.pi/2) / (np.abs(y1[2] - np.pi/2) + np.abs(y[2] - np.pi/2))
+            r_on = (1-w)*y1[1] + w*y[1]
+            on_disk = (r_on > r_in) and (r_on < r_out)
+            if crossing and on_disk:
+                endType = "Disk"
+                msg = "Particle crossed the disk"
+                return True, msg, endType
 
         msg = "None"
         return False, msg, None
+
 
     def photon_tMomentum(self, x_sph, p_sph, **kwargs):
         """
@@ -166,7 +179,11 @@ class Schwarzchild():
         P_screen = self.photonScreenPoint(alpha, beta)
         return P_screen
     
-    def rayTracer(self):
+    def rayTracer(self, mode=None, **kwargs):
+        if mode == "thin_disk":
+            r_in = kwargs['r_in']
+            r_out = kwargs['r_out']
+
         P_screen = self.photonScreen()
         for idx in tqdm(range(self.N*self.N)):
             i = idx//self.N
@@ -175,12 +192,17 @@ class Schwarzchild():
             y_init = np.concatenate((self.init_pos, init_mom), axis=0)
 
             geodesic = lambda l, y: self.geodesic(l, y)
-            terminalCondition = lambda y, h: self.terminalCondition(y, h, r_max=self.x_screen[0])
+            terminalCondition = lambda y, y1, h: self.terminalCondition(y, y1, h,
+                                                                        mode=mode,
+                                                                        r_max=self.x_screen[0],
+                                                                        r_in=r_in,
+                                                                        r_out=r_out)
             _, Y, endType = RK4(geodesic, t_range=(0, 500), initial=y_init, h=1e-1, terminalCondition=terminalCondition)
 
             if endType == "Error"           : self.img[i, j] = np.nan
             elif endType == "EventHorizon"  : self.img[i, j] = 0
             elif endType == "Escape"        : self.img[i, j] = 1
+            elif endType == "Disk"          : self.img[i, j] = 0.5
         return self.img
 
 def photonFreq(mom, freq):

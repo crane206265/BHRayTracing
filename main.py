@@ -11,9 +11,9 @@ from utils import plot2DSchwarzchild, plot3DSchwarzchild
 # --------------------------- Param. Setting --------------------------
 
 M = 1               # Mass of BH
-r_screen = 150       # BH - obs distance (unit : M)
+r_screen = 100       # BH - obs distance (unit : M)
 FOV = 8            # Field of View (FOV) (unit : deg)
-PPD = 5            # Pixel per Deg. (PPD)
+PPD = 15            # Pixel per Deg. (PPD)
 
 r_screen *= M
 
@@ -26,8 +26,9 @@ x_screen = np.array([r_screen, np.pi/4, 0])
 freq = 1.3
 BH.screenInitSetting(x_screen, freq=freq, FOV=FOV, PPD=PPD)
 
-
-img = BH.rayTracer()
+r_in = 6*M
+r_out = 20*M
+img = BH.rayTracer(mode="thin_disk", r_in=r_in, r_out=r_out)
 ax = plot2DSchwarzchild(img, FOV=FOV, PPD=PPD, r_screen=r_screen, M=M)
 plt.show()
 raise
