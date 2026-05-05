@@ -18,10 +18,25 @@ def sph2Cart(r, theta, phi):
     return X, Y, Z
 
 def plot2DSchwarzchild(img, mode=None, **kwargs):
+    """
+    ## Plot the 2D Graphics around the Schwarzchild BH
+    #### [Parameter]
+    img : image array\\
+    mode : plotting mode\\
+        - withGuide : draw theoretical values\\
+        - None\\
+    FOV : field of view\\
+    PPD : pixel per degree\\
+    r_screen : distance from BH to observer\\
+    M : BH Mass\\
+    inc : inclination\\
+    """
     FOV = kwargs['FOV']
     PPD = kwargs['PPD']
     r_screen = kwargs['r_screen']
-    M = kwargs['M']
+    
+    M = kwargs['M']             # BH Mass
+    inc = kwargs['inc']         # inclination
 
     cmap = plt.cm.hot.copy()
     cmap.set_bad(color='black')
@@ -37,7 +52,7 @@ def plot2DSchwarzchild(img, mode=None, **kwargs):
         plt.plot(X, Y, color='red', linestyle='dashed', alpha=0.7, label="Theoretical Shadow")
         plt.legend()    
 
-    plt.title("Schwarzchild BH Shadow")
+    plt.title(r"Schwarzchild BH Shadow (M=%.2f, inc=%d$\degree$)"%(M, inc))
     plt.xlabel("deg")
     plt.ylabel("deg")
     plt.colorbar(label = r'redshift factor $g=\nu_{\rm obs}/\nu_{\rm emit}$')
@@ -59,7 +74,7 @@ def plot3DSchwarzchild(x_sph, ax, **kwargs):
     phi = x_sph[:, 2]
     X, Y, Z = sph2Cart(r, theta, phi)
 
-    M = kwargs['M']         # BH Mas
+    M = kwargs['M']         # BH Mass
     freq = kwargs['freq']   # observed frequency of photon
     lim_set = kwargs['lim_set']
 

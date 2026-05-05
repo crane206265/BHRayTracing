@@ -13,7 +13,8 @@ SAVE_PATH = r"C:\Users\dlgkr\OneDrive\Desktop\code\astronomy\BHRayTracing"
 
 
 M = 1               # Mass of BH
-r_screen = 200       # BH - obs distance (unit : M)
+r_screen = 200      # BH - obs distance (unit : M)
+inc = 80            # inclination
 FOV = 10            # Field of View (FOV) (unit : deg)
 PPD = 40            # Pixel per Deg. (PPD)
 
@@ -23,20 +24,19 @@ r_screen *= M
 
 ax = None
 BH = Schwarzchild(M=M)
-i = 80
 
-x_screen = np.array([r_screen, i*np.pi/180, 0])
+x_screen = np.array([r_screen, inc*np.pi/180, 0])
 freq = 1.3
 BH.screenInitSetting(x_screen, freq=freq, FOV=FOV, PPD=PPD)
 
 r_in = 6*M
 r_out = 20*M
 img = BH.rayTracerBatch(mode="thin_disk", r_in=r_in, r_out=r_out)
-ax = plot2DSchwarzchild(img, mode=None, FOV=FOV, PPD=PPD, r_screen=r_screen, M=M)
+ax = plot2DSchwarzchild(img, mode=None, FOV=FOV, PPD=PPD, r_screen=r_screen, M=M, inc=inc)
 #plt.show()
 plt.savefig(SAVE_PATH+"/BH_img.png", dpi=200)
 
-ax = plot2DSchwarzchild(img, mode="withGuide", FOV=FOV, PPD=PPD, r_screen=r_screen, M=M)
+ax = plot2DSchwarzchild(img, mode="withGuide", FOV=FOV, PPD=PPD, r_screen=r_screen, M=M, inc=inc)
 #plt.show()
 plt.savefig(SAVE_PATH+"/BH_img_guide.png", dpi=200)
 
