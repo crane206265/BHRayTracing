@@ -5,22 +5,17 @@ from tqdm import tqdm
 
 from physics import Schwarzchild
 from numerical import RK4
-from utils import plot3DSchwarzchild
-
-
-# ------------------------------ Param.s ------------------------------
-
-M = 1               # Mass of BH
-r_screen = 30       # BH - obs distance (unit : M)
-FOV = 2            # Field of View (FOV) (unit : deg)
-PPD = 10            # Pixel per Deg. (PPD)
+from utils import plot2DSchwarzchild, plot3DSchwarzchild
 
 
 # --------------------------- Param. Setting --------------------------
+
+M = 1               # Mass of BH
+r_screen = 150       # BH - obs distance (unit : M)
+FOV = 8            # Field of View (FOV) (unit : deg)
+PPD = 5            # Pixel per Deg. (PPD)
+
 r_screen *= M
-img = np.zeros((FOV*PPD, FOV*PPD))
-
-
 
 # ------------------------------ Main ------------------------------
 
@@ -31,8 +26,18 @@ x_screen = np.array([r_screen, np.pi/4, 0])
 freq = 1.3
 BH.screenInitSetting(x_screen, freq=freq, FOV=FOV, PPD=PPD)
 
+
+img = BH.rayTracer()
+ax = plot2DSchwarzchild(img, FOV=FOV, PPD=PPD, r_screen=r_screen, M=M)
+plt.show()
+raise
+
 N = 15
-init_mom_arr = BH.screenSampling(N)
+P_screen = BH.photonScreen()
+P_screen_flatten = P_screen.reshape(4, -1)
+sampling_idx = np.random.choice(np.arange(P_screen_flatten.shape[1]), N, replace=False)
+init_mom_arr = P_screen_flatten[:, sampling_idx]
+
 for i in tqdm(range(N)):
     init_pos = np.array([0, x_screen[0], x_screen[1], x_screen[2]])
     init_mom = init_mom_arr[:, i]
@@ -40,7 +45,7 @@ for i in tqdm(range(N)):
 
     geodesic = lambda l, y: BH.geodesic(l, y)
     terminalCondition = lambda y, h: BH.terminalCondition(y, h)
-    _, Y = RK4(geodesic, t_range=(0, 500), initial=y_init, h=1e-1, terminalCondition=terminalCondition)
+    _, Y, _ = RK4(geodesic, t_range=(0, 500), initial=y_init, h=1e-1, terminalCondition=terminalCondition)
     x_sph = Y[:, 1:4]
 
     freq = init_mom[0]

@@ -17,6 +17,27 @@ def sph2Cart(r, theta, phi):
     Z = r*np.cos(theta)
     return X, Y, Z
 
+def plot2DSchwarzchild(img, **kwargs):
+    FOV = kwargs['FOV']
+    PPD = kwargs['PPD']
+    r_screen = kwargs['r_screen']
+    M = kwargs['M']
+
+    ax = plt.figure()
+    plt.imshow(img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2])
+
+    theta = np.linspace(0, 2*np.pi, 100)
+    r_shadow = (np.sqrt(27)*M/r_screen) * 180/np.pi
+    X = r_shadow * np.cos(theta)
+    Y = r_shadow * np.sin(theta)
+    plt.plot(X, Y, color='red', linestyle='dash', alpha=0.7, label="Theoretical Shadow")
+
+    plt.title("Schwarzchild BH Shadow")
+    plt.xlabel("deg")
+    plt.ylabel("deg")
+    plt.legend()
+    return ax
+
 def plot3DSchwarzchild(x_sph, ax, **kwargs):
     """
     ## Plot the 3D Graphics around the Schwarzchild BH

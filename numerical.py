@@ -22,10 +22,11 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
         t_i = t_arr[i]
         y_i = y_arr[i]
 
-        terminated, msg = terminalCondition(y_i, h=h)
+        y_i1 = y_arr[i-1]
+        terminated, msg, endType = terminalCondition(y_i, y_i1, h=h)
         if terminated:
-            print("i=%5d| "%(i)+msg)
-            return t_arr[:i], y_arr[:i, :]
+            #print(" lambda=%5d| "%(i)+msg)
+            return t_arr[:i], y_arr[:i, :], endType
         
         k1 = f(t_i, y_i)
         k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
@@ -35,4 +36,4 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
         if i < t_len-1:
             y_arr[i+1] = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
     #print("i=%5d| Particle finished the given path"%(i))
-    return t_arr, y_arr
+    return t_arr, y_arr, endType

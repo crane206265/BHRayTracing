@@ -1,6 +1,9 @@
 # ------------------------------ Library ------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
+
+from numerical import RK4
 
 
 # ------------------------------ Functions ------------------------------
@@ -38,34 +41,45 @@ class Schwarzchild():
         dPphi = -(2/r)*Pphi*Pr - (2*np.cos(theta)/(np.sin(theta)+eps))*Ptheta*Pphi
         return np.array([dt, dr, dtheta, dphi, dPt, dPr, dPtheta, dPphi])
 
-    def terminalCondition(self, y, h, **kwargs):
+    def terminalCondition(self, y, y1, h, **kwargs):
         """
         #### Terminal Conditions for Schwarzchild BH
         - returns boolean
         #### [Paramter]
-        y : coordinate, momentum\\
+        y : coordinate, momentum at t=i\\
+        y1 : coordinate, momentum at t=i-1\\
         h : step size of RK4\\
         """
         M = self.M
+        r_max = kwargs['r_max']
+        mode = kwargs['mode']
 
         # NaN Detection
         if np.isnan(y).any():
             endType = "Error"
             msg = "NaN Detected"
-            return True, msg
+            return True, msg, endType
         # INF Detection
         if np.isinf(y).any():
             endType = "Error"
             msg = "INF Detected"
-            return True, msg
+            return True, msg, endType
         
         # Particle went into the Event Horizon
         if y[1] < 2*M + h:
             endType = "EventHorizon"
             msg = "Particle went into the event horizon"
-            return True, msg
+            return True, msg, endType
+        
+        # Particle escaped the BH
+        if y[1] > r_max:
+            endType = "Escape"
+            msg = "Particle escaped the BH"
+            return True, msg, endType
+
+
         msg = "None"
-        return False, msg
+        return False, msg, None
 
     def photon_tMomentum(self, x_sph, p_sph, **kwargs):
         """
@@ -105,7 +119,7 @@ class Schwarzchild():
         """
         #### Initial Setting of Screen
         #### [Paramter]
-        x_screen : position of screen with spherical coordinates
+        x_screen : 3-position of screen with spherical coordinates
         freq : observing frequency
         FOV : field of view (FOV) (unit : deg)
         PPD : pixel per degree (PPD) (unit : #/deg)
@@ -114,7 +128,10 @@ class Schwarzchild():
         self.freq = freq
         self.FOV = FOV
         self.PPD = PPD
-        self.img = np.zeros((FOV*PPD, FOV*PPD))
+
+        self.init_pos = np.array([0, self.x_screen[0], self.x_screen[1], self.x_screen[2]])
+        self.N = int(FOV*PPD)
+        self.img = np.zeros((self.N, self.N))
 
     def photonScreenPoint(self, alpha, beta):
         """
@@ -141,27 +158,30 @@ class Schwarzchild():
         return mom4_global
 
     def photonScreen(self):
-        alpha = np.linspace(-self.FOV/2, self.FOV/2, self.FOV*self.PPD)
-        beta = np.linspace(-self.FOV/2, self.FOV/2, self.FOV*self.PPD)
-        alpha = np.tile(alpha, self.FOV*self.PPD).reshape((self.FOV*self.PPD, self.FOV*self.PPD))
-        beta = np.repeat(beta, self.FOV*self.PPD).reshape((self.FOV*self.PPD, self.FOV*self.PPD))
+        alpha = np.linspace(-self.FOV/2, self.FOV/2, self.N) * np.pi/180
+        beta = np.linspace(-self.FOV/2, self.FOV/2, self.N) * np.pi/180
+        alpha = np.tile(alpha, self.N).reshape((self.N, self.N))
+        beta = np.repeat(beta, self.N).reshape((self.N, self.N))
 
         P_screen = self.photonScreenPoint(alpha, beta)
         return P_screen
-
-    def screenSampling(self, N):
-        """
-        #### Sampling the photon on screen
-        - random sampling $N$ 4-momentums of photons from the screen
-        #### [Parameter]
-        N : # of photon to sampling
-        """
+    
+    def rayTracer(self):
         P_screen = self.photonScreen()
-        P_screen_flatten = P_screen.reshape(4, -1)
-        sampling_idx = np.random.choice(np.arange(P_screen_flatten.shape[1]), N, replace=False)
-        return P_screen_flatten[:, sampling_idx]
+        for idx in tqdm(range(self.N*self.N)):
+            i = idx//self.N
+            j = idx%self.N
+            init_mom = P_screen[:, i, j]
+            y_init = np.concatenate((self.init_pos, init_mom), axis=0)
 
+            geodesic = lambda l, y: self.geodesic(l, y)
+            terminalCondition = lambda y, h: self.terminalCondition(y, h, r_max=self.x_screen[0])
+            _, Y, endType = RK4(geodesic, t_range=(0, 500), initial=y_init, h=1e-1, terminalCondition=terminalCondition)
 
+            if endType == "Error"           : self.img[i, j] = np.nan
+            elif endType == "EventHorizon"  : self.img[i, j] = 0
+            elif endType == "Escape"        : self.img[i, j] = 1
+        return self.img
 
 def photonFreq(mom, freq):
     """
