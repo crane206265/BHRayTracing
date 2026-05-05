@@ -49,3 +49,19 @@ def terminalConditionSchwarzchild(y, h, **kwargs):
         return True, msg
     msg = "None"
     return False, msg
+
+
+def photonMomentumSchwarzchild(x_sph, p_sph):
+    """
+    #### Photon Momentum with Schwarzchild Metric
+    - return the t-component of photon momentum
+    - using null condition
+    #### [Parameter]
+    x_sph : 3-coord.
+    p_sph_3 : 3-momentum
+    """
+    r, theta, phi = x_sph
+    Pr, Ptheta, Pphi = p_sph
+    Pt = np.sqrt(Pr*Pr + (r*Ptheta)**2 + (r*np.sin(theta)*Pphi)**2)
+    return Pt
+    
