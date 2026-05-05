@@ -17,9 +17,9 @@ def sph2Cart(r, theta, phi):
     Z = r*np.cos(theta)
     return X, Y, Z
 
-def plot3D(x_sph, ax, **kwargs):
+def plot3DSchwarzchild(x_sph, ax, **kwargs):
     """
-    ## Plot the 3D Graphics around the Black Hole
+    ## Plot the 3D Graphics around the Schwarzchild BH
     #### [Parameter]
     x_sph : spherical coordinates
     - size = (t_len, 3)
@@ -30,13 +30,17 @@ def plot3D(x_sph, ax, **kwargs):
     phi = x_sph[:, 2]
     X, Y, Z = sph2Cart(r, theta, phi)
 
-    M = kwargs['M']
-    
+    M = kwargs['M']         # BH Mas
+    freq = kwargs['freq']   # observed frequency of photon
+
     # Basic Setting
+    cmap = plt.cm.viridis
+    norm = plt.Normalize(vmin=0, vmax=0.1)
     if ax is None:
         ax = plt.figure().add_subplot(projection='3d')
         ax.scatter((0), (0), (0), color='black', s=50) # Plot the BH
 
+        # Event Horizon
         theta = np.linspace(0, np.pi, 20)
         phi = np.linspace(0, 2 * np.pi, 20)
         r_hor = 2*M
@@ -45,7 +49,16 @@ def plot3D(x_sph, ax, **kwargs):
         z = r_hor * np.outer(np.ones_like(phi), np.cos(theta))
         ax.plot_surface(x, y, z, color='black', edgecolor='none', alpha=0.5)
 
-    ax.plot(X, Y, Z, lw=1)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])  # matplotlib 요구사항
+
+        cbar = plt.colorbar(sm, ax=ax, fraction=0.03, pad=0.1)
+        cbar.set_label('frequency')
+
+    color = cmap(norm(np.log(freq)))
+    print(freq, np.log(freq))
+
+    ax.plot(X, Y, Z, lw=1, color=color)
     lim_set = (-10, 10)
     ax.set_box_aspect((1, 1, 1))
     ax.set_xlim(lim_set)
