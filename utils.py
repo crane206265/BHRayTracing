@@ -32,6 +32,7 @@ def plot3DSchwarzchild(x_sph, ax, **kwargs):
 
     M = kwargs['M']         # BH Mas
     freq = kwargs['freq']   # observed frequency of photon
+    lim_set = kwargs['lim_set']
 
     # Basic Setting
     cmap = plt.cm.viridis
@@ -56,10 +57,9 @@ def plot3DSchwarzchild(x_sph, ax, **kwargs):
         cbar.set_label('frequency')
 
     color = cmap(norm(np.log(freq)))
-    print(freq, np.log(freq))
+    #print(freq, np.log(freq))
 
     ax.plot(X, Y, Z, lw=1, color=color)
-    lim_set = (-10, 10)
     ax.set_box_aspect((1, 1, 1))
     ax.set_xlim(lim_set)
     ax.set_xlabel('X')
