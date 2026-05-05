@@ -51,7 +51,7 @@ def terminalConditionSchwarzchild(y, h, **kwargs):
     return False, msg
 
 
-def photonMomentumSchwarzchild(x_sph, p_sph):
+def photonMomentumSchwarzchild(x_sph, p_sph, **kwargs):
     """
     #### Photon Momentum with Schwarzchild Metric
     - return the t-component of photon momentum
@@ -62,6 +62,9 @@ def photonMomentumSchwarzchild(x_sph, p_sph):
     """
     r, theta, phi = x_sph
     Pr, Ptheta, Pphi = p_sph
-    Pt = np.sqrt(Pr*Pr + (r*Ptheta)**2 + (r*np.sin(theta)*Pphi)**2)
+    M = kwargs['M']
+    
+    f = 1-2*M/r
+    Pt = np.sqrt(f*(Pr*Pr/f + (r*Ptheta)**2 + (r*np.sin(theta)*Pphi)**2))
     return Pt
     

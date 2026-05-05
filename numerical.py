@@ -25,7 +25,7 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
         terminated, msg = terminalCondition(y_i, h=h)
         if terminated:
             print("i=%5d| "%(i)+msg)
-            return t_arr, y_arr
+            return t_arr[:i], y_arr[:i, :]
         
         k1 = f(t_i, y_i)
         k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
