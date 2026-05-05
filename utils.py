@@ -23,8 +23,11 @@ def plot2DSchwarzchild(img, **kwargs):
     r_screen = kwargs['r_screen']
     M = kwargs['M']
 
+    cmap = plt.cm.hot.copy()
+    cmap.set_bad(color='black')
+
     ax = plt.figure()
-    plt.imshow(img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2])
+    plt.imshow(img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2], cmap=cmap, vmin=0.5, vmax=1.5)
 
     theta = np.linspace(0, 2*np.pi, 100)
     r_shadow = (np.sqrt(27)*M/r_screen) * 180/np.pi
@@ -36,10 +39,10 @@ def plot2DSchwarzchild(img, **kwargs):
     plt.xlabel("deg")
     plt.ylabel("deg")
     plt.legend()
-    cbar = plt.colorbar()
-    cbar.set_label('photon fate')
-    cbar.set_ticks([0, 0.5, 1])
-    cbar.set_ticklabels(['BH', 'Disk', 'Escape'])
+    plt.colorbar(label = r'redshift factor $g=\nu_{\rm obs}/\nu_{\rm emit}$')
+    #cbar.set_label('photon fate')
+    #cbar.set_ticks([0, 0.5, 1])
+    #cbar.set_ticklabels(['BH', 'Disk', 'Escape'])
     return ax
 
 def plot3DSchwarzchild(x_sph, ax, **kwargs):

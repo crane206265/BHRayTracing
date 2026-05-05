@@ -52,8 +52,9 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
 
     y_dim = initial.shape[0]
     N_dim = initial.shape[1]
-    y_arr0 = np.zeros((t_len, y_dim, N_dim))
-    y_arr0[0] = initial
+    y_arr = np.zeros((t_len, y_dim, N_dim))
+    freq_emit = np.zeros(N_dim)
+    y_arr[0] = initial
 
     alive = np.ones(N_dim, dtype=bool)
     endType_full = np.zeros((N_dim, 3), dtype=bool)
@@ -62,7 +63,7 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
         idx = np.where(alive)[0]
         if len(idx) == 0: break
         t_i = t_arr[i]
-        y_i = y_arr0[i, :, idx].T
+        y_i = y_arr[i, :, idx].T
 
         k1 = f(t_i, y_i)
         k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
@@ -70,12 +71,17 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
         k4 = f(t_i + h, y_i + h*k3)
 
         y_i1 = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
-        y_arr0[i+1, :, idx] = y_i1.T
+        y_arr[i+1, :, idx] = y_i1.T
 
-        terminated, endType = terminalCondition(y_i1, y_i, h=h)
+        terminated, endType, freq_emit_i = terminalCondition(y_i1, y_i, h=h)
         dead_idx = idx[terminated]
         endType_full[dead_idx] = endType[terminated]
         alive[dead_idx] = False
         
-        y_arr0[i+1, :, dead_idx] = y_arr0[i+1, :, dead_idx]
-    return t_arr, y_arr0, endType_full
+        y_arr[i+1, :, dead_idx] = y_arr[i+1, :, dead_idx]
+
+        disk_mask = endType[terminated, 2]
+        disk_idx = dead_idx[disk_mask]
+        freq_emit[disk_idx] = freq_emit_i[terminated][disk_mask]
+
+    return t_arr, y_arr, endType_full, freq_emit

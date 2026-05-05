@@ -123,13 +123,15 @@ class Schwarzchild():
             crossing = crossing | (np.abs((y[2]+y1[2])/2 - np.pi/2) < tol)
 
             w = np.abs(y1[2] - np.pi/2) / ((np.abs(y1[2] - np.pi/2) + np.abs(y[2] - np.pi/2)) + eps)
-            r_on = (1-w)*y1[1] + w*y[1]
+            y_on = (1-w)*y1 + w*y
+            r_on = y_on[1]
             on_disk = (r_on > r_in) & (r_on < r_out)
             endType[:, 2] = crossing & on_disk
+            freq_emit = self.diskEmitFreq(y_on[:4], y_on[4:])
 
         terminated = np.logical_or(endType[:, 0], endType[:, 1])
         terminated = np.logical_or(terminated, endType[:, 2])
-        return terminated, endType
+        return terminated, endType, freq_emit
 
     def photon_tMomentum(self, x_sph, p_sph, **kwargs):
         """
@@ -148,6 +150,30 @@ class Schwarzchild():
         Pt = np.sqrt(f*(Pr*Pr/f + (r*Ptheta)**2 + (r*np.sin(theta)*Pphi)**2))
         return np.array([Pt, Pr, Ptheta, Pphi])
     
+    def metricTensor(self, x_sph):
+        """
+        #### Metric Tensor
+        $$g_{\mu\nu}$$
+        """
+        r, theta, phi = x_sph
+        M = self.M
+        N = x_sph.shape[1]
+
+        if N == 1:
+            g = np.zeros((4, 4))
+            g[0, 0] = -(1-2*M/r)
+            g[1, 1] = 1/(1-2*M/r)
+            g[2, 2] = r**2
+            g[3, 3] = (r*np.sin(theta))**2
+            return g
+        if N > 1:
+            g = np.zeros((4, 4, N))
+            g[0, 0, :] = -(1-2*M/r)
+            g[1, 1, :] = 1/(1-2*M/r)
+            g[2, 2, :] = r**2
+            g[3, 3, :] = (r*np.sin(theta))**2
+            return g
+    
     def vierbein(self, x_sph):
         """
         #### Vierbein
@@ -162,6 +188,31 @@ class Schwarzchild():
         e[2, 2] = r
         e[3, 3] = r*np.sin(theta)
         return e
+    
+    def diskEmitFreq(self, x, p):
+        """
+        #### Disk Emission Frequency
+        : calculate the frequency of the photon emitted on the disk
+        - frame of observer
+        - Keplerian orbital motion assumption
+        #### [Parameter]
+        x : 4-position of the photon (on the disk)
+        P : 4-mometum of the photon (on the disk)
+        """
+        t, r, theta, phi = x
+        Ut = 1/np.sqrt(1-3*self.M/r)
+        Uphi = np.sqrt(self.M/(r**3))*Ut
+        U_disk = np.array([Ut,
+                           np.zeros_like(Ut),
+                           np.zeros_like(Ut),
+                           Uphi])
+        # u_disk : (4, N)
+        # p : (4, N)
+        metric = self.metricTensor(x[1:]) # (4,4,N)
+
+        U_disk_covar = np.einsum('ij...,j...->i...', metric, U_disk) # (4, N)
+        freq_emit = -np.einsum('i...,i...->...', p, U_disk_covar) #(N)
+        return freq_emit
 
     # -------------------- Screen Setting --------------------
 
@@ -257,14 +308,14 @@ class Schwarzchild():
                                                                          r_max=self.x_screen[0],
                                                                          r_in=r_in,
                                                                          r_out=r_out)
-        _, Y, endType = RK4Batch(geodesic, t_range=(0, 500), initial=y_init, h=2e-2, terminalCondition=terminalCondition)
+        _, Y, endType, freq_emit = RK4Batch(geodesic, t_range=(0, 500), initial=y_init, h=2e-2, terminalCondition=terminalCondition)
 
         for idx in tqdm(range(self.N*self.N)):
             i = idx//self.N
             j = idx%self.N
-            if endType[idx, 0]      : self.img[i, j] = 0
-            elif endType[idx, 1]    : self.img[i, j] = 1
-            elif endType[idx, 2]    : self.img[i, j] = 0.5
+            if endType[idx, 0]      : self.img[i, j] = np.nan
+            elif endType[idx, 1]    : self.img[i, j] = np.nan
+            elif endType[idx, 2]    : self.img[i, j] = self.freq/freq_emit[idx]
         return self.img
 
 def photonFreq(mom, freq):
