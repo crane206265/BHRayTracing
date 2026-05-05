@@ -308,14 +308,22 @@ class Schwarzchild():
                                                                          r_max=self.x_screen[0],
                                                                          r_in=r_in,
                                                                          r_out=r_out)
-        _, Y, endType, freq_emit = RK4Batch(geodesic, t_range=(0, 500), initial=y_init, h=2e-2, terminalCondition=terminalCondition)
+        
+        batchsize = 5000
+        N_total = y_init.shape[1]
+        for b in tqdm(range(int(np.ceil(N_total/batchsize)))):
+            print(" Batch %d/%d"%(b, int(np.ceil(N_total/batchsize))))
+            batch_start = b*batchsize
+            batch_end = min((b+1)*batchsize, N_total)
+            y_init_batch = y_init[:, batch_start:batch_end]
+            _, _, endType, freq_emit = RK4Batch(geodesic, t_range=(0, 500), initial=y_init_batch, h=2e-2, terminalCondition=terminalCondition)
 
-        for idx in tqdm(range(self.N*self.N)):
-            i = idx//self.N
-            j = idx%self.N
-            if endType[idx, 0]      : self.img[i, j] = np.nan
-            elif endType[idx, 1]    : self.img[i, j] = np.nan
-            elif endType[idx, 2]    : self.img[i, j] = self.freq/freq_emit[idx]
+            for local_idx, global_idx in tqdm(enumerate(range(batch_start, batch_end))):
+                i = global_idx//self.N
+                j = global_idx%self.N
+                if endType[local_idx, 0]      : self.img[i, j] = np.nan
+                elif endType[local_idx, 1]    : self.img[i, j] = np.nan
+                elif endType[local_idx, 2]    : self.img[i, j] = self.freq/freq_emit[local_idx]
         return self.img
 
 def photonFreq(mom, freq):
