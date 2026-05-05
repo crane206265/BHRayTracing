@@ -1,6 +1,7 @@
 # ------------------------------ Library ------------------------------
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 # ------------------------------ Functions ------------------------------
@@ -37,3 +38,44 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
             y_arr[i+1] = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
     #print("i=%5d| Particle finished the given path"%(i))
     return t_arr, y_arr, endType
+
+
+def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)):
+    """
+    ## Runge-Kutta Method of 4th Order
+    $$ y' = f(t,y), y(t_0) = y_0 $$ \\
+    $$ y_{n+1} = y_n + \frac{1}{6}h(k_1 + 2k_2 + 2k_3 + k_4) $$\\
+    $$ t_{n+1} = t_n + h $$
+    """
+    t_arr = np.arange(t_range[0], t_range[1], h)
+    t_len = t_arr.shape[0]
+
+    y_dim = initial.shape[0]
+    N_dim = initial.shape[1]
+    y_arr0 = np.zeros((t_len, y_dim, N_dim))
+    y_arr0[0] = initial
+
+    alive = np.ones(N_dim, dtype=bool)
+    endType_full = np.zeros((N_dim, 3), dtype=bool)
+
+    for i in tqdm(range(t_len-1)):
+        idx = np.where(alive)[0]
+        if len(idx) == 0: break
+        t_i = t_arr[i]
+        y_i = y_arr0[i, :, idx].T
+
+        k1 = f(t_i, y_i)
+        k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
+        k3 = f(t_i + 0.5*h, y_i + 0.5*h*k2)
+        k4 = f(t_i + h, y_i + h*k3)
+
+        y_i1 = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
+        y_arr0[i+1, :, idx] = y_i1.T
+
+        terminated, endType = terminalCondition(y_i1, y_i, h=h)
+        dead_idx = idx[terminated]
+        endType_full[dead_idx] = endType[terminated]
+        alive[dead_idx] = False
+        
+        y_arr0[i+1, :, dead_idx] = y_arr0[i+1, :, dead_idx]
+    return t_arr, y_arr0, endType_full

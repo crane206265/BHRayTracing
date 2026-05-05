@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from numerical import RK4
+from numerical import RK4, RK4Batch
 
 
 # ------------------------------ Functions ------------------------------
@@ -71,7 +71,7 @@ class Schwarzchild():
             return True, msg, endType
         
         # Particle escaped the BH
-        if y[1] > r_max:
+        if y[1] > r_max + 1*M:
             endType = "Escape"
             msg = "Particle escaped the BH"
             return True, msg, endType
@@ -93,6 +93,43 @@ class Schwarzchild():
         msg = "None"
         return False, msg, None
 
+    def terminalConditionBatch(self, y, y1, h, mode=None, **kwargs):
+        """
+        #### Terminal Conditions for Schwarzchild BH
+        - returns boolean
+        #### [Paramter]
+        y : coordinate, momentum at t=i\\
+        y1 : coordinate, momentum at t=i-1\\
+        h : step size of RK4\\
+        """
+        M = self.M
+        r_max = kwargs['r_max']
+        
+        endType = np.full((y.shape[1], 3), False)
+        # Particle went into the Event Horizon
+        endType[:, 0] = y[1] < 2*M + h
+        
+        # Particle escaped the BH
+        endType[:, 1] = y[1] > r_max + 1*M
+        
+        # thin disk
+        if mode == "thin_disk":
+            r_in = kwargs['r_in']
+            r_out = kwargs['r_out']
+            tol = 1e-2
+            eps = 1e-8
+
+            crossing = ((y[2]-np.pi/2) * (y1[2]-np.pi/2) < 0)
+            crossing = crossing | (np.abs((y[2]+y1[2])/2 - np.pi/2) < tol)
+
+            w = np.abs(y1[2] - np.pi/2) / ((np.abs(y1[2] - np.pi/2) + np.abs(y[2] - np.pi/2)) + eps)
+            r_on = (1-w)*y1[1] + w*y[1]
+            on_disk = (r_on > r_in) & (r_on < r_out)
+            endType[:, 2] = crossing & on_disk
+
+        terminated = np.logical_or(endType[:, 0], endType[:, 1])
+        terminated = np.logical_or(terminated, endType[:, 2])
+        return terminated, endType
 
     def photon_tMomentum(self, x_sph, p_sph, **kwargs):
         """
@@ -203,6 +240,31 @@ class Schwarzchild():
             elif endType == "EventHorizon"  : self.img[i, j] = 0
             elif endType == "Escape"        : self.img[i, j] = 1
             elif endType == "Disk"          : self.img[i, j] = 0.5
+        return self.img
+    
+    def rayTracerBatch(self, mode=None, **kwargs):
+        if mode == "thin_disk":
+            r_in = kwargs['r_in']
+            r_out = kwargs['r_out']
+
+        init_pos = np.repeat(self.init_pos[:, np.newaxis], self.N*self.N, axis=1)
+        init_mom = self.photonScreen().reshape(4, -1)
+        y_init = np.concatenate((init_pos, init_mom), axis=0)
+
+        geodesic = lambda l, y: self.geodesic(l, y)
+        terminalCondition = lambda y, y1, h: self.terminalConditionBatch(y, y1, h,
+                                                                         mode=mode,
+                                                                         r_max=self.x_screen[0],
+                                                                         r_in=r_in,
+                                                                         r_out=r_out)
+        _, Y, endType = RK4Batch(geodesic, t_range=(0, 500), initial=y_init, h=2e-2, terminalCondition=terminalCondition)
+
+        for idx in tqdm(range(self.N*self.N)):
+            i = idx//self.N
+            j = idx%self.N
+            if endType[idx, 0]      : self.img[i, j] = 0
+            elif endType[idx, 1]    : self.img[i, j] = 1
+            elif endType[idx, 2]    : self.img[i, j] = 0.5
         return self.img
 
 def photonFreq(mom, freq):
