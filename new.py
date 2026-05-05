@@ -2,6 +2,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from physics import *
+from numerical import RK4
+from utils import plot3D
 
 
 # ------------------------------ Param.s ------------------------------
@@ -18,50 +21,17 @@ img = np.zeros((FOV*PPD, FOV*PPD))
 
 
 
-# ------------------------------ Methods ------------------------------
-def RK4(f, initial, t_range, h=1e-3):
-    """
-    ## Runge-Kutta Method of 4th Order
-    $$ y' = f(t,y), y(t_0) = y_0 $$ \\
-    $$ y_{n+1} = y_n + \frac{1}{6}h(k_1 + 2k_2 + 2k_3 + k_4) $$\\
-    $$ t_{n+1} = t_n + h $$
-    """
-    t_arr = np.arange(t_range[0], t_range[1], h)
-    t_len = t_arr.shape[0]
+# ------------------------------ Main ------------------------------
 
-    y_dim = initial.shape[0]
-    y_arr = np.zeros((t_len, y_dim))
-    y_arr[0] = initial
 
-    for i in range(t_len):
-        t_i = t_arr[i]
-        y_i = y_arr[i]
 
-        k1 = f(t_i, y_i)
-        k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
-        k3 = f(t_i + 0.5*h, y_i + 0.5*h*k2)
-        k4 = f(t_i + h, y_i + h*k3)
+ax = None
+for i in range(10):
+    y_init = np.array([0, 10, np.pi/2, 0, 1, -1, 0.1*np.random.random(1)[0]-0.05, 0.1*np.random.random(1)[0]-0.05])
+    geodesic = lambda l, y: geodesicSchwarzchild(l, y, M=M)
+    terminalCondition = lambda y, h: terminalConditionSchwarzchild(y, h, M=M)
+    _, Y = RK4(geodesic, t_range=(0, 500), initial=y_init, h=1e-2, terminalCondition=terminalCondition)
+    x_sph = Y[:, 1:4]
 
-        if i < t_len-1:
-            y_arr[i+1] = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
-    return t_arr, y_arr
-
-def geodesicSch(l, y, M):
-    """
-    ## Geodesic Equation of Schwarzchild Metric
-    - form for RK4
-    #### [Parameter]
-    l : affine parameter ($\lambda$) \\
-    y : Input. ($t, r, \theta, \phi, P^t, P^r, P^{\theta}, P^{\phi}$)
-    """
-    t, r, theta, phi, Pt, Pr, Ptheta, Pphi = y
-    dt = Pt
-    dr = Pr
-    dtheta = Ptheta
-    dphi = Pphi
-    dPt = -(2*M/(r*(r-2*M)))*Pr*Pt
-    dPr = -(M/(r**3))*(r-2*M)*Pt*Pt + (M/(r*(r-2*M)))*Pr*Pr + (r-2*M)*(Ptheta*Ptheta + (np.sin(theta)*Pphi)**2)
-    dPtheta = -(2/r)*Ptheta*Pr + np.sin(theta)*np.cos(theta)*Pphi*Pphi
-    dPphi = -(2/r)*Pphi*Pr - (2*np.cos(theta)/np.sin(theta))*Ptheta*Pphi
-    return np.array([dt, dr, dtheta, dphi, dPt, dPr, dPtheta, dPphi])
-
+    ax = plot3D(x_sph, ax=ax, M=M)
+plt.show()
