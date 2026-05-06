@@ -205,7 +205,10 @@ class Schwarzchild():
         P : 4-mometum of the photon (on the disk)
         """
         t, r, theta, phi = x
-        Ut = 1/np.sqrt(1-3*self.M/r)
+        Ut = np.zeros_like(r)
+        mask = r > 3*self.M
+        Ut[mask] = 1/np.sqrt(1-3*self.M/r)
+        Ut[~mask] = 0
         Uphi = np.sqrt(self.M/(r**3))*Ut
         U_disk = np.array([Ut,
                            np.zeros_like(Ut),
