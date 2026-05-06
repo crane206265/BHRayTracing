@@ -43,6 +43,8 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
 def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)):
     """
     ## Runge-Kutta Method of 4th Order
+    - Batch Parallelized Code
+    #### [Formalism]
     $$ y' = f(t,y), y(t_0) = y_0 $$ \\
     $$ y_{n+1} = y_n + \frac{1}{6}h(k_1 + 2k_2 + 2k_3 + k_4) $$\\
     $$ t_{n+1} = t_n + h $$
@@ -53,7 +55,7 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
     y_dim = initial.shape[0]
     N_dim = initial.shape[1]
     y_arr = np.zeros((t_len, y_dim, N_dim))
-    freq_emit = np.zeros(N_dim)
+    disk_info = np.zeros((N_dim, 2))
     y_arr[0] = initial
 
     alive = np.ones(N_dim, dtype=bool)
@@ -73,7 +75,8 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
         y_i1 = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
         y_arr[i+1, :, idx] = y_i1.T
 
-        terminated, endType, freq_emit_i = terminalCondition(y_i1, y_i, h=h)
+        terminated, endType, disk_info_i = terminalCondition(y_i1, y_i, h=h)
+
         dead_idx = idx[terminated]
         endType_full[dead_idx] = endType[terminated]
         alive[dead_idx] = False
@@ -82,6 +85,6 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
 
         disk_mask = endType[terminated, 2]
         disk_idx = dead_idx[disk_mask]
-        freq_emit[disk_idx] = freq_emit_i[terminated][disk_mask]
+        disk_info[disk_idx, :] = disk_info_i[terminated, :][disk_mask, :]
 
-    return t_arr, y_arr, endType_full, freq_emit
+    return t_arr, y_arr, endType_full, disk_info

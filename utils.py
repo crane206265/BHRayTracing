@@ -31,6 +31,9 @@ def plot2DSchwarzchild(img, mode=None, **kwargs):
     M : BH Mass\\
     inc : inclination\\
     """
+    z_img = img[:, :, 0]
+    I_img = img[:, :, 1]
+
     FOV = kwargs['FOV']
     PPD = kwargs['PPD']
     r_screen = kwargs['r_screen']
@@ -41,24 +44,41 @@ def plot2DSchwarzchild(img, mode=None, **kwargs):
     cmap = plt.cm.hot.copy()
     cmap.set_bad(color='black')
 
-    ax = plt.figure()
-    plt.imshow(img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2], cmap=cmap, vmin=0.5, vmax=1.5)
+    fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+    ax1 = ax[0]
+    ax2 = ax[1]
+
+    # Plot redshift factor g
+    img1 = ax1.imshow(z_img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2], cmap=cmap, vmin=0.5, vmax=1.5)
+
+    # Plot (relative) intensity I
+    I_img = I_img / np.nanmax(I_img)
+    I_img = np.log(I_img)
+    img2 = ax2.imshow(I_img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2], cmap=cmap)
 
     if mode == "withGuide":
         theta = np.linspace(0, 2*np.pi, 100)
         r_shadow = (np.sqrt(27)*M/r_screen) * 180/np.pi
         X = r_shadow * np.cos(theta)
         Y = r_shadow * np.sin(theta)
-        plt.plot(X, Y, color='red', linestyle='dashed', alpha=0.7, label="Theoretical Shadow")
-        plt.legend()    
+        ax1.plot(X, Y, color='red', linestyle='dashed', alpha=0.7, label="Theoretical Shadow")
+        ax2.plot(X, Y, color='red', linestyle='dashed', alpha=0.7, label="Theoretical Shadow")
+        ax1.legend()    
+        ax2.legend()    
 
-    plt.title(r"Schwarzchild BH Shadow (M=%.2f, inc=%d$\degree$)"%(M, inc))
-    plt.xlabel("deg")
-    plt.ylabel("deg")
-    plt.colorbar(label = r'redshift factor $g=\nu_{\rm obs}/\nu_{\rm emit}$')
+    ax1.set_title(r"Shadow of Schwarzchild BH (M=%.2f, inc=%d$\degree$)"%(M, inc))
+    ax1.set_xlabel("deg")
+    ax1.set_ylabel("deg")
+    plt.colorbar(img1, label = r'redshift factor $g=\nu_{\rm obs}/\nu_{\rm emit}$')
+
+    ax2.set_title(r"Shadow of Schwarzchild BH (M=%.2f, inc=%d$\degree$)"%(M, inc))
+    ax2.set_xlabel("deg")
+    ax2.set_ylabel("deg")
+    plt.colorbar(img2, label = r'Relative Intensity $I_{obs}\propto g^3 r^{-q}$')
     #cbar.set_label('photon fate')
     #cbar.set_ticks([0, 0.5, 1])
     #cbar.set_ticklabels(['BH', 'Disk', 'Escape'])
+    plt.tight_layout()
     return ax
 
 def plot3DSchwarzchild(x_sph, ax, **kwargs):
