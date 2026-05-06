@@ -169,7 +169,7 @@ class Schwarzchild():
             on_disk = (r_on > r_in) & (r_on < r_out)
             endType[:, 2] = crossing & on_disk
             freq_emit = self.diskEmitFreq(y_on[:4], y_on[4:])
-            intensity_emit = self.diskIntensity(y_on[:4])
+            intensity_emit = self.diskIntensity(y_on[:4], q=2)
             disk_info = np.stack((freq_emit, intensity_emit), axis=1)
 
         terminated = np.logical_or(endType[:, 0], endType[:, 1])
