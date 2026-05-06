@@ -9,7 +9,7 @@ from utils import plot2DSchwarzchild, plot3DSchwarzchild
 
 
 # --------------------------- Param. Setting --------------------------
-SAVE_PATH = r"C:\Users\dlgkr\OneDrive\Desktop\code\astronomy\BHRayTracing"
+SAVE_PATH = r"C:\Users\dlgkr\OneDrive\Desktop\code\astronomy\BHRayTracing\saved_data"
 
 
 M = 1               # Mass of BH
