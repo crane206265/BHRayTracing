@@ -40,7 +40,7 @@ def RK4(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)
     return t_arr, y_arr, endType
 
 
-def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None)):
+def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, None), recordHistory=False):
     """
     ## Runge-Kutta Method of 4th Order
     - Batch Parallelized Code
@@ -54,37 +54,74 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
 
     y_dim = initial.shape[0]
     N_dim = initial.shape[1]
-    y_arr = np.zeros((t_len, y_dim, N_dim))
-    disk_info = np.zeros((N_dim, 2))
-    y_arr[0] = initial
 
-    alive = np.ones(N_dim, dtype=bool)
-    endType_full = np.zeros((N_dim, 3), dtype=bool)
+    # record all history of geodesics
+    if recordHistory:
+        y_arr = np.zeros((t_len, y_dim, N_dim))
+        y_arr[0] = initial
+        disk_info = np.zeros((N_dim, 2))
 
-    for i in tqdm(range(t_len-1)):
-        idx = np.where(alive)[0]
-        if len(idx) == 0: break
-        t_i = t_arr[i]
-        y_i = y_arr[i, :, idx].T
+        alive = np.ones(N_dim, dtype=bool)
+        endType_full = np.zeros((N_dim, 3), dtype=bool)
 
-        k1 = f(t_i, y_i)
-        k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
-        k3 = f(t_i + 0.5*h, y_i + 0.5*h*k2)
-        k4 = f(t_i + h, y_i + h*k3)
+        for i in tqdm(range(t_len-1)):
+            idx = np.where(alive)[0]
+            if len(idx) == 0: break
+            t_i = t_arr[i]
+            y_i = y_arr[i, :, idx].T
 
-        y_i1 = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
-        y_arr[i+1, :, idx] = y_i1.T
+            k1 = f(t_i, y_i)
+            k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)
+            k3 = f(t_i + 0.5*h, y_i + 0.5*h*k2)
+            k4 = f(t_i + h, y_i + h*k3)
 
-        terminated, endType, disk_info_i = terminalCondition(y_i1, y_i, h=h)
+            y_i1 = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
+            y_arr[i+1, :, idx] = y_i1.T
 
-        dead_idx = idx[terminated]
-        endType_full[dead_idx] = endType[terminated]
-        alive[dead_idx] = False
-        
-        y_arr[i+1, :, dead_idx] = y_arr[i+1, :, dead_idx]
+            terminated, endType, disk_info_i = terminalCondition(y_i1, y_i, h=h)
 
-        disk_mask = endType[terminated, 2]
-        disk_idx = dead_idx[disk_mask]
-        disk_info[disk_idx, :] = disk_info_i[terminated, :][disk_mask, :]
+            dead_idx = idx[terminated]
+            endType_full[dead_idx] = endType[terminated]
+            alive[dead_idx] = False
 
-    return t_arr, y_arr, endType_full, disk_info
+            y_arr[i+1, :, dead_idx] = y_arr[i, :, dead_idx]
+
+            disk_mask = endType[terminated, 2]
+            disk_idx = dead_idx[disk_mask]
+            disk_info[disk_idx, :] = disk_info_i[terminated, :][disk_mask, :]
+
+        return t_arr, y_arr, endType_full, disk_info
+    
+    # do not record the history of geodesics
+    # for optimization
+    else:
+        y = initial.copy() # (y_dim, N_dim)
+        disk_info = np.zeros((N_dim, 2))
+
+        alive = np.ones(N_dim, dtype=bool)
+        endType_full = np.zeros((N_dim, 3), dtype=bool)
+
+        for t in tqdm(t_arr):
+            idx = np.where(alive)[0]
+            if len(idx) == 0: break
+            y_i = y[:, idx].copy()
+
+            k1 = f(t, y_i)
+            k2 = f(t + 0.5*h, y_i + 0.5*h*k1)
+            k3 = f(t + 0.5*h, y_i + 0.5*h*k2)
+            k4 = f(t + h, y_i + h*k3)
+
+            y_i1 = y_i + h*(k1 + 2*k2 + 2*k3 + k4)/6
+            y[:, idx] = y_i1
+
+            terminated, endType, disk_info_i = terminalCondition(y_i1, y_i, h=h)
+
+            dead_idx = idx[terminated]
+            endType_full[dead_idx] = endType[terminated]
+            alive[dead_idx] = False
+
+            disk_mask = endType[terminated, 2]
+            disk_idx = dead_idx[disk_mask]
+            disk_info[disk_idx, :] = disk_info_i[terminated, :][disk_mask, :]
+
+        return None, None, endType_full, disk_info

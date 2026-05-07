@@ -205,9 +205,12 @@ class Schwarzchild():
         P : 4-mometum of the photon (on the disk)
         """
         t, r, theta, phi = x
+        Pt, _, _, Pphi = p
+        M = self.M
+
         Ut = np.zeros_like(r)
         mask = r > 3*self.M
-        Ut[mask] = 1/np.sqrt(1-3*self.M/r)
+        Ut[mask] = 1/np.sqrt(1-3*self.M/r[mask])
         Ut[~mask] = 0
         Uphi = np.sqrt(self.M/(r**3))*Ut
         U_disk = np.array([Ut,
@@ -216,10 +219,13 @@ class Schwarzchild():
                            Uphi])
         # u_disk : (4, N)
         # p : (4, N)
-        metric = self.metricTensor(x[1:]) # (4,4,N)
+        # ----- General Form -----
+        # : not used for optimization
+        # metric = self.metricTensor(x[1:]) # (4,4,N)
+        # U_disk_covar = np.einsum('ij...,j...->i...', metric, U_disk) # (4, N)
+        # freq_emit = -np.einsum('i...,i...->...', p, U_disk_covar) #(N)
 
-        U_disk_covar = np.einsum('ij...,j...->i...', metric, U_disk) # (4, N)
-        freq_emit = -np.einsum('i...,i...->...', p, U_disk_covar) #(N)
+        freq_emit = -(-(1-2*M/r)*Pt*Ut + ((r*np.sin(theta))**2)*Pphi*Uphi) # (N)
         return freq_emit
     
     def diskIntensity(self, x, q=2):

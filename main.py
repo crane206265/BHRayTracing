@@ -35,21 +35,21 @@ img = BH.rayTracerBatch(mode="thin_disk", r_in=r_in, r_out=r_out)
 #z_img = img[:, :, 0]
 #intensity_img = img[:, :, 1]
 
-np.save(SAVE_PATH+"/BH_raw_img.npy", img)
+#np.save(SAVE_PATH+"/BH_raw_img.npy", img)
 
 ax = plot2DSchwarzchild(img,
                         mode=None,
                         FOV=FOV, PPD=PPD, r_screen=r_screen,
                         M=M, inc=inc)
-#plt.show()
-plt.savefig(SAVE_PATH+"/BH_img.png", dpi=200)
+plt.show()
+#plt.savefig(SAVE_PATH+"/BH_img.png", dpi=200)
 
 ax = plot2DSchwarzchild(img,
                         mode='withGuide',
                         FOV=FOV, PPD=PPD, r_screen=r_screen,
                         M=M, inc=inc)
-#plt.show()
-plt.savefig(SAVE_PATH+"/BH_img_guide.png", dpi=200)
+plt.show()
+#plt.savefig(SAVE_PATH+"/BH_img_guide.png", dpi=200)
 
 
 
