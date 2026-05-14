@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-from physics import Schwarzchild
+from BlackHole import Schwarzchild
+from AccretionDisk import SimpleDisk
 from numerical import RK4
 from utils import plot2DSchwarzchild, plot3DSchwarzchild
 
@@ -23,7 +24,8 @@ r_screen *= M
 # ------------------------------ Main ------------------------------
 
 ax = None
-BH = Schwarzchild(M=M)
+Disk = SimpleDisk(q=2)
+BH = Schwarzchild(M=M, Disk=Disk)
 
 x_screen = np.array([r_screen, inc*np.pi/180, 0])
 freq = 1.3
