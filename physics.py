@@ -14,17 +14,17 @@ from numerical import RK4, RK4Batch
 # --------------------------- Abstract Class --------------------------
 #######################################################################
 class BlackHole(ABC):
-    def __init__(self, M, Q, J):
+    def __init__(self, M, J, Q):
         super().__init__()
         self.M = M
-        self.Q = Q
         self.J = J
+        self.Q = Q
 
     @abstractmethod
-    def metricTensor(self, x_sph): pass
+    def metricTensor(self, x): pass
 
     @abstractmethod
-    def vierbein(self, x_sph): pass
+    def vierbein(self, x): pass
     
     @abstractmethod
     def geodesic(self, l, y): pass
@@ -34,6 +34,12 @@ class AccDisk(ABC):
 
     @abstractmethod
     def setBH(self, BH): pass
+
+    @abstractmethod
+    def diskEmitFreq(self, x, p): pass
+
+    @abstractmethod
+    def diskIntensity(self, x): pass
 
 
 

@@ -2,16 +2,13 @@
 # ------------------------------ Library ------------------------------
 #######################################################################
 import numpy as np
-from tqdm import tqdm
 
-from numerical import RK4, RK4Batch
 from physics import BlackHole, AccDisk
-import physics as PH
 
 
 
 #######################################################################
-# ------------------------------ BH Class -----------------------------
+# ------------------------ Accretion Disk Class -----------------------
 #######################################################################
 class SimpleDisk(AccDisk):
     def __init__(self, q):
@@ -48,7 +45,7 @@ class SimpleDisk(AccDisk):
         # p : (4, N)
         # ----- General Form -----
         # : not used for optimization
-        # metric = self.metricTensor(x[1:]) # (4,4,N)
+        # metric = self.metricTensor(x) # (4,4,N)
         # U_disk_covar = np.einsum('ij...,j...->i...', metric, U_disk) # (4, N)
         # freq_emit = -np.einsum('i...,i...->...', p, U_disk_covar) #(N)
 
