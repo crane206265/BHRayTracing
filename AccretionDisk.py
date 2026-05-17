@@ -4,6 +4,7 @@
 import numpy as np
 
 from physics import BlackHole, AccDisk
+from BlackHole import Schwarzchild, Kerr
 
 
 
@@ -41,15 +42,17 @@ class SimpleDisk(AccDisk):
                            np.zeros_like(Ut),
                            np.zeros_like(Ut),
                            Uphi])
-        # u_disk : (4, N)
+        # U_disk : (4, N)
         # p : (4, N)
         # ----- General Form -----
-        # : not used for optimization
-        # metric = self.metricTensor(x) # (4,4,N)
-        # U_disk_covar = np.einsum('ij...,j...->i...', metric, U_disk) # (4, N)
-        # freq_emit = -np.einsum('i...,i...->...', p, U_disk_covar) #(N)
+        if type(self.BH) is Schwarzchild:
+            # for optimization
+            freq_emit = -(-(1-2*M/r)*Pt*Ut + ((r*np.sin(theta))**2)*Pphi*Uphi) # (N)
+        else:
+            metric = self.BH.metricTensor(x) # (4,4,N)
+            U_disk_covar = np.einsum('ij...,j...->i...', metric, U_disk) # (4, N)
+            freq_emit = -np.einsum('i...,i...->...', p, U_disk_covar) #(N)
 
-        freq_emit = -(-(1-2*M/r)*Pt*Ut + ((r*np.sin(theta))**2)*Pphi*Uphi) # (N)
         return freq_emit
     
     def diskIntensity(self, x):

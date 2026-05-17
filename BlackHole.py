@@ -25,7 +25,7 @@ class Schwarzchild(BlackHole):
     - photon_tMomentum
     """
     def __init__(self, M, Disk:AccDisk):
-        super.__init__(M=M, J=None, Q=None)
+        super().__init__(M=M, J=None, Q=None)
         self.Disk = Disk
         self.Disk.setBH(self)
 
@@ -54,10 +54,10 @@ class Schwarzchild(BlackHole):
             g[3, 3, :] = (r*np.sin(theta))**2
             return g
     
-    def vierbein(self, x):
+    def vierbein_g2l(self, x):
         """
         #### Vierbein
-        - local -> global
+        - global -> local
         """
         t, r, theta, phi = x
         M = self.M
@@ -67,6 +67,21 @@ class Schwarzchild(BlackHole):
         e[1, 1] = 1/np.sqrt(1-2*M/r)
         e[2, 2] = r
         e[3, 3] = r*np.sin(theta)
+        return e
+    
+    def vierbein_l2g(self, x):
+        """
+        #### Vierbein
+        - local -> global
+        """
+        t, r, theta, phi = x
+        M = self.M
+
+        e = np.zeros((4, 4))
+        e[0, 0] = 1/np.sqrt(1-2*M/r)
+        e[1, 1] = np.sqrt(1-2*M/r)
+        e[2, 2] = 1/r
+        e[3, 3] = 1/(r*np.sin(theta))
         return e
 
     def geodesic(self, l, y):
@@ -179,24 +194,24 @@ class Schwarzchild(BlackHole):
             on_disk = (r_on > r_in) & (r_on < r_out)
             endType[:, 2] = crossing & on_disk
             freq_emit = self.Disk.diskEmitFreq(y_on[:4], y_on[4:])
-            intensity_emit = self.Disk.diskIntensity(y_on[:4], q=2)
+            intensity_emit = self.Disk.diskIntensity(y_on[:4])
             disk_info = np.stack((freq_emit, intensity_emit), axis=1)
 
         terminated = np.logical_or(endType[:, 0], endType[:, 1])
         terminated = np.logical_or(terminated, endType[:, 2])
         return terminated, endType, disk_info
 
-    def photon_tMomentum(self, x_sph, p_sph, **kwargs):
+    def photon_tMomentum(self, x, p_sp, **kwargs):
         """
         #### Photon Momentum with Schwarzchild Metric
         - return the 4-momentum corr. given 3-momentum of photon
         - using null condition
         #### [Parameter]
-        x_sph : 3-coord.
-        p_sph_3 : 3-momentum
+        x : 4-position.
+        p_sp : 3-momentum
         """
-        r, theta, phi = x_sph
-        Pr, Ptheta, Pphi = p_sph
+        t, r, theta, phi = x
+        Pr, Ptheta, Pphi = p_sp
         M = self.M
 
         f = 1-2*M/r
@@ -242,9 +257,8 @@ class Schwarzchild(BlackHole):
         mom4_local = PH.photonFreq(mom4_local, self.freq)
 
         # mom4_local : 4-momentum of global frame (Schwarzchild)
-        e = self.vierbein(np.insert(self.x_screen, 0, 0))   # (4,4)
-        e_inv = np.linalg.inv(e)           # (4,4)
-        mom4_global = np.einsum('ij,j...->i...', e_inv, mom4_local) # (4,N)
+        e = self.vierbein_l2g(np.insert(self.x_screen, 0, 0))   # (4,4)
+        mom4_global = np.einsum('ij,j...->i...', e, mom4_local) # (4,N)
         return mom4_global
 
     def photonScreen(self):
@@ -333,7 +347,7 @@ class Kerr(BlackHole):
     - photon_tMomentum
     """
     def __init__(self, M, J, Disk:AccDisk):
-        super.__init__(M=M, J=J, Q=None)
+        super().__init__(M=M, J=J, Q=None)
         self.Disk = Disk
         self.Disk.setBH(self)
 
@@ -356,23 +370,13 @@ class Kerr(BlackHole):
         gtt = -(1 - (rs*r)/(S))
         gtphi = -(rs*r*a*np.sin(theta)*np.sin(theta))/(S)
         gphiphi = (r*r + a*a + (rs*r*a*a*np.sin(theta)*np.sin(theta))/(S))*np.sin(theta)*np.sin(theta)
-        if N == 1:
-            g = np.zeros((4, 4))
-            g[0, 0] = gtt
-            g[1, 1] = S/D
-            g[2, 2] = S
-            g[3, 3] = gphiphi
-            g[0, 3] = gtphi
-            g[3, 0] = gtphi
-            
-        if N > 1:
-            g = np.zeros((4, 4, N))
-            g[0, 0, :] = gtt
-            g[1, 1, :] = S/D
-            g[2, 2, :] = S
-            g[3, 3, :] = gphiphi
-            g[0, 3, :] = gtphi
-            g[3, 0, :] = gtphi
+        g = np.zeros((4, 4, N))
+        g[0, 0, :] = gtt
+        g[1, 1, :] = S/D
+        g[2, 2, :] = S
+        g[3, 3, :] = gphiphi
+        g[0, 3, :] = gtphi
+        g[3, 0, :] = gtphi
         
         return g
     
@@ -460,7 +464,7 @@ class Kerr(BlackHole):
 
         return Gamma
 
-    def vierbein(self, x):
+    def vierbein_l2g(self, x):
         """
         #### Vierbein
         - local -> global
@@ -469,12 +473,56 @@ class Kerr(BlackHole):
         M = self.M
         J = self.J
 
-        e = np.zeros((4, 4))
-        e[0, 0] = np.sqrt(1-2*M/r)
-        e[1, 1] = 1/np.sqrt(1-2*M/r)
-        e[2, 2] = r
-        e[3, 3] = r*np.sin(theta)
-        return e
+        rs = 2*M # Schwarzschild radius
+        a = J/M # Kerr param.
+
+        D = r*r - 2*M*r + a*a
+        S = r*r + a*a*np.cos(theta)*np.cos(theta)
+        A = (r*r+a*a)**2 - a*a*D*np.sin(theta)*np.sin(theta)
+
+        if self.mode == 'ZAMO':
+            # ZAMO
+            omega = rs*a*r/A
+
+            e = np.zeros((4, 4))
+            e[:, 0] = np.sqrt(A/(S*D)) * np.array([1, 0, 0, omega])
+            e[:, 1] = np.sqrt(D/S) * np.array([0, 1, 0, 0])
+            e[:, 2] = np.sqrt(1/S) * np.array([0, 0, 1, 0])
+            e[:, 3] = (np.sqrt(S/A)/np.sin(theta)) * np.array([0, 0, 0, 1])
+            return e
+        
+        elif self.mode is None:
+            raise NotImplementedError("General case for any angular velocity of observer is not implemented yet")
+    
+    def vierbein_g2l(self, x):
+        """
+        #### Vierbein
+        - global -> local
+        """
+        t, r, theta, phi = x
+        M = self.M
+        J = self.J
+
+        rs = 2*M # Schwarzschild radius
+        a = J/M # Kerr param.
+
+        D = r*r - 2*M*r + a*a
+        S = r*r + a*a*np.cos(theta)*np.cos(theta)
+        A = (r*r+a*a)**2 - a*a*D*np.sin(theta)*np.sin(theta)
+
+        if self.mode == 'ZAMO':
+            # ZAMO
+            omega = rs*a*r/A
+
+            e = np.zeros((4, 4))
+            e[0, :] = np.sqrt((S*D)/A) * np.array([1, 0, 0, 0])
+            e[1, :] = np.sqrt(S/D) * np.array([0, 1, 0, 0])
+            e[2, :] = np.sqrt(S) * np.array([0, 0, 1, 0])
+            e[3, :] = (np.sqrt(A/S)*np.sin(theta)) * np.array([-omega, 0, 0, 1])
+            return e
+        
+        elif self.mode is None:
+            raise NotImplementedError("General case for any angular velocity of observer is not implemented yet")
 
     def geodesic(self, l, y):
         """
@@ -509,7 +557,11 @@ class Kerr(BlackHole):
         h : step size of RK4\\
         """
         M = self.M
+        J = self.J
         r_max = kwargs['r_max']
+
+        a = J/M
+        r_outer = M + np.sqrt(M*M-a*a)
 
         # NaN Detection
         if np.isnan(y).any():
@@ -523,7 +575,7 @@ class Kerr(BlackHole):
             return True, msg, endType
         
         # Particle went into the Event Horizon
-        if y[1] < 2*M + h:
+        if y[1] < r_outer + h:
             endType = "EventHorizon"
             msg = "Particle went into the event horizon"
             return True, msg, endType
@@ -561,11 +613,15 @@ class Kerr(BlackHole):
         h : step size of RK4\\
         """
         M = self.M
+        J = self.J
         r_max = kwargs['r_max']
+
+        a = J/M
+        r_outer = M + np.sqrt(M*M-a*a)
         
         endType = np.full((y.shape[1], 3), False)
         # Particle went into the Event Horizon
-        endType[:, 0] = y[1] < 2*M + h
+        endType[:, 0] = y[1] < r_outer + h
         
         # Particle escaped the BH
         endType[:, 1] = y[1] > r_max + 1*M
@@ -586,33 +642,43 @@ class Kerr(BlackHole):
             on_disk = (r_on > r_in) & (r_on < r_out)
             endType[:, 2] = crossing & on_disk
             freq_emit = self.Disk.diskEmitFreq(y_on[:4], y_on[4:])
-            intensity_emit = self.Disk.diskIntensity(y_on[:4], q=2)
+            intensity_emit = self.Disk.diskIntensity(y_on[:4])
             disk_info = np.stack((freq_emit, intensity_emit), axis=1)
 
         terminated = np.logical_or(endType[:, 0], endType[:, 1])
         terminated = np.logical_or(terminated, endType[:, 2])
         return terminated, endType, disk_info
 
-    def photon_tMomentum(self, x_sph, p_sph, **kwargs):
+    def photon_tMomentum(self, x, p_sp, **kwargs):
         """
         #### Photon Momentum with Schwarzchild Metric
         - return the 4-momentum corr. given 3-momentum of photon
         - using null condition
         #### [Parameter]
-        x_sph : 3-coord.
-        p_sph_3 : 3-momentum
+        x : 4-position.
+        p_sp : 3-momentum
         """
-        r, theta, phi = x_sph
-        Pr, Ptheta, Pphi = p_sph
+        t, r, theta, phi = x
+        Pr, Ptheta, Pphi = p_sp
         M = self.M
+        J = self.J
 
-        f = 1-2*M/r
-        Pt = np.sqrt(f*(Pr*Pr/f + (r*Ptheta)**2 + (r*np.sin(theta)*Pphi)**2))
+        g = self.metricTensor(x[:, ...])
+        g_00 = g[0, 0, 0] # t,t-component
+        g_11 = g[1, 1, 0] # r,r-component
+        g_22 = g[2, 2, 0] # theta,theta-component
+        g_33 = g[3, 3, 0] # phi,phi-component
+        g_03 = g[0, 3, 0] # t,phi-component
+
+        a = g_00
+        b2 = g_03*Pphi
+        c = g_11*Pr*Pr + g_22*Ptheta*Ptheta + g_33*Pphi*Pphi
+        Pt = ( -b2 - np.sqrt(b2*b2 - a*c) ) / a
         return np.array([Pt, Pr, Ptheta, Pphi])
 
     # -------------------- Screen Setting --------------------
 
-    def screenInitSetting(self, x_screen, freq, FOV, PPD):
+    def screenInitSetting(self, x_screen, freq, FOV, PPD, mode='ZAMO', **kwargs):
         """
         #### Initial Setting of Screen
         #### [Paramter]
@@ -620,6 +686,7 @@ class Kerr(BlackHole):
         freq : observing frequency
         FOV : field of view (FOV) (unit : deg)
         PPD : pixel per degree (PPD) (unit : #/deg)
+        mode : setting of angular velocity of observer
         """
         self.x_screen = x_screen
         self.freq = freq
@@ -629,6 +696,11 @@ class Kerr(BlackHole):
         self.init_pos = np.array([0, self.x_screen[0], self.x_screen[1], self.x_screen[2]])
         self.N = int(FOV*PPD)
         self.img = np.full((self.N, self.N, 2), np.nan) # idx 0: z / idx 1: Intensity
+
+        self.mode = mode
+        if mode is None:
+            raise NotImplementedError("General case for any angular velocity of observer is not implemented yet")
+            self.zeta = kwargs['zeta']
 
     def photonScreenPoint(self, alpha, beta):
         """
@@ -642,6 +714,7 @@ class Kerr(BlackHole):
         Y = np.tan(beta)
 
         # mom4_local : 4-momentum of local frame (Minkowski)
+        # set the optical axis of screen to be e_r
         mom4_local = np.array([np.ones_like(X),
                                -1/np.sqrt(1+X**2+Y**2),
                                Y/np.sqrt(1+X**2+Y**2),
@@ -649,9 +722,8 @@ class Kerr(BlackHole):
         mom4_local = PH.photonFreq(mom4_local, self.freq)
 
         # mom4_local : 4-momentum of global frame (Schwarzchild)
-        e = self.vierbein(np.insert(self.x_screen, 0, 0))   # (4,4)
-        e_inv = np.linalg.inv(e)           # (4,4)
-        mom4_global = np.einsum('ij,j...->i...', e_inv, mom4_local) # (4,N)
+        e = self.vierbein_l2g(np.insert(self.x_screen, 0, 0))   # (4,4)
+        mom4_global = np.einsum('ij,j...->i...', e, mom4_local) # (4,N)
         return mom4_global
 
     def photonScreen(self):
@@ -665,6 +737,7 @@ class Kerr(BlackHole):
     
     # -------------------- Ray Tracing --------------------
     def rayTracer(self, mode=None, **kwargs):
+        raise NotImplementedError("Single ray tracing for Kerr is not implemented yet")
         if mode == "thin_disk":
             r_in = kwargs['r_in']
             r_out = kwargs['r_out']
@@ -675,7 +748,7 @@ class Kerr(BlackHole):
             j = idx%self.N
             init_mom = P_screen[:, i, j]
             y_init = np.concatenate((self.init_pos, init_mom), axis=0)
-
+            
             geodesic = lambda l, y: self.geodesic(l, y)
             terminalCondition = lambda y, y1, h: self.terminalCondition(y, y1, h,
                                                                         mode=mode,

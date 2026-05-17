@@ -71,7 +71,7 @@ def RK4Batch(f, initial, t_range, h=1e-3, terminalCondition=lambda y, h: (True, 
             idx = np.where(alive)[0]
             if len(idx) == 0: break
             t_i = t_arr[i]
-            y_i = y_arr[i, :, idx].T
+            y_i = y_arr[i, :, idx]
 
             k1 = f(t_i, y_i)
             k2 = f(t_i + 0.5*h, y_i + 0.5*h*k1)

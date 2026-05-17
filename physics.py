@@ -24,7 +24,10 @@ class BlackHole(ABC):
     def metricTensor(self, x): pass
 
     @abstractmethod
-    def vierbein(self, x): pass
+    def vierbein_l2g(self, x): pass
+
+    @abstractmethod
+    def vierbein_g2l(self, x): pass
     
     @abstractmethod
     def geodesic(self, l, y): pass
