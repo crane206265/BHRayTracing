@@ -57,7 +57,7 @@ class Schwarzchild(BlackHole):
     def vierbein(self, x):
         """
         #### Vierbein
-        - global -> local
+        - local -> global
         """
         t, r, theta, phi = x
         M = self.M
@@ -463,7 +463,7 @@ class Kerr(BlackHole):
     def vierbein(self, x):
         """
         #### Vierbein
-        - global -> local
+        - local -> global
         """
         t, r, theta, phi = x
         M = self.M
