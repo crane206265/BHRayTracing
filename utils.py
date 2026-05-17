@@ -154,12 +154,12 @@ def plot2DKerr(img, mode=None, **kwargs):
     I_img = np.log(I_img)
     img2 = ax2.imshow(I_img, extent = [-FOV/2, FOV/2, -FOV/2, FOV/2], cmap=cmap)  
 
-    ax1.set_title(r"Shadow of Kerr BH (M=%.2f, J=%.2fM, inc=%d$\degree$)"%(M, J/M, inc))
+    ax1.set_title(r"Shadow of Kerr BH ($M=%.2f$, $J=%.2fM^2$, inc=%d$\degree$)"%(M, J/M, inc))
     ax1.set_xlabel("deg")
     ax1.set_ylabel("deg")
     plt.colorbar(img1, label = r'redshift factor $g=\nu_{\rm obs}/\nu_{\rm emit}$')
 
-    ax2.set_title(r"Shadow of Kerr BH (M=%.2f, J=%.2fM, inc=%d$\degree$)"%(M, J/M, inc))
+    ax2.set_title(r"Shadow of Kerr BH ($M=%.2f$, $J=%.2fM^2$, inc=%d$\degree$)"%(M, J/M, inc))
     ax2.set_xlabel("deg")
     ax2.set_ylabel("deg")
     plt.colorbar(img2, label = r'Relative Intensity $I_{obs}\propto g^3 r^{-q}$')

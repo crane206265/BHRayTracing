@@ -4,7 +4,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import plot2DSchwarzchild
+from utils import plot2DBH
+from AccretionDisk import SimpleDisk
+from BlackHole import Schwarzchild, Kerr
 
 
 
@@ -23,21 +25,26 @@ PPD = 60            # Pixel per Deg. (PPD)
 r_screen *= M
 
 
+ax = None
+Disk = SimpleDisk(q=2)
+#BH = Schwarzchild(M=M, Disk=Disk)
+BH = Kerr(M=M, J=0.8*M, Disk=Disk)
 
 #######################################################################
 # ------------------------------- Main --------------------------------
 #######################################################################
-img = np.load(SAVE_PATH+"/BH_raw_img.npy")
-ax = plot2DSchwarzchild(img,
-                        mode=None,
-                        FOV=FOV, PPD=PPD, r_screen=r_screen,
-                        M=M, inc=inc)
+img = np.load(SAVE_PATH+"/Kerr_BH_raw_img.npy")
+ax = plot2DBH(img, BH=BH,
+              mode=None,
+              FOV=FOV, PPD=PPD,
+              r_screen=r_screen, inc=inc)
 plt.show()
-#plt.savefig(SAVE_PATH+"/BH_img.png", dpi=200)
+#plt.savefig(SAVE_PATH+"/Kerr_BH_img.png", dpi=200)
 
-ax = plot2DSchwarzchild(img,
-                        mode='withGuide',
-                        FOV=FOV, PPD=PPD, r_screen=r_screen,
-                        M=M, inc=inc)
+raise
+ax = plot2DBH(img,
+              mode='withGuide',
+              FOV=FOV, PPD=PPD, r_screen=r_screen,
+              M=M, inc=inc)
 plt.show()
 #plt.savefig(SAVE_PATH+"/BH_img_guide.png", dpi=200)
